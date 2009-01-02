@@ -1,0 +1,30 @@
+h1.title {
+    color: blue;
+    text-align: center;
+}
+
+canvas {
+    text-align: center;
+    padding: 5px;
+    border: solid black;
+    border-width: 2px;
+    width: 600px;
+    height: 400px;
+}
+
+textarea#in {
+    border: solid blue;
+    border-width: 1px;
+    padding: 2px;
+    width: 90%;
+    height: 15%;
+}
+
+img#ok_img {
+    height: 64px;
+    width: 64px;
+    border: none;
+}
+
+input#ok {
+}
