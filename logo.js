@@ -308,6 +308,7 @@ logo_grammar.init([
                     ['fac', ['action-definition']],
                     ['fac', ['set-var']],
                     ['fac', ['k-(', 'expr', 'k-)']],
+                    ['fac', ['add-op', 'fac']],
                     ['expr', ['term']],
                     ['expr', ['expr', 'add-op', 'term']],
                     ['term', ['fac']],
@@ -517,6 +518,11 @@ Env.prototype = {
 };
 
 function toEvaluator(ast) {
+  
+  var operator_to_function = {
+    '-': 'inv'
+  };
+  
   var actions = {
     _default_: function (node, kids) {
       return node;
@@ -528,6 +534,7 @@ function toEvaluator(ast) {
     },
     
     expr: function (node, kids) {
+      // TODO: too many if/else: redesign
       // variable names must be evaluated only within an expr
       if (kids[0].op == 'var-name') {
         var name = kids[0].args[0];
@@ -546,7 +553,17 @@ function toEvaluator(ast) {
                                                  y.call(this, env)]);
           };
         } else {
-          return kids[0];
+          if (kids.length == 2 && 
+              (kids[0].op == 'add-op' || kids[0].op == 'mul-op')) {
+            // unary math operation
+            var op = operator_to_function[kids[0].args[0]];
+            var x = kids[1];
+            return function (env) {
+              return env.lookup(op).logocall(env, [x.call(this, env)]);
+            };
+          } else {
+            return kids[0];
+          }
         }
       }
     },
@@ -730,6 +747,10 @@ global_env.set('+', new LogoFn(['x', 'y'], function (env) {
 global_env.set('-', new LogoFn(['x', 'y'], function (env) {
                                  return env.lookup('x') - env.lookup('y');
                                }));
+
+global_env.set('inv', new LogoFn(['x'], function (env) {
+                                   return -env.lookup('x');
+                                 }));
 
 global_env.set('*', new LogoFn(['x', 'y'], function (env) {
                                  return env.lookup('x') * env.lookup('y');
