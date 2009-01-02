@@ -293,7 +293,7 @@ LogoCanvas.prototype.drawLast = function () {
  * args-list ::= expr | expr args-list
  */
 
-var keywords = ['for', 'to', 'do', 'end', '(', ')', 'define-command', 'local', ':=', 'k-;', '+', '-', '*', '/'];
+var keywords = ['for', 'to', 'do', 'end', '(', ')', 'define-command', 'local', ':=', 'k-;', '+', '-', '*', '/', '%'];
 
 var logo_grammar = new Grammar();
 
@@ -357,7 +357,7 @@ function match_add(word) {
 }
 
 function match_mul(word) {
-  return ['*', '/'].indexOf(word)!=-1;
+  return ['*', '/', '%'].indexOf(word)!=-1;
 }
 
 /*
@@ -733,4 +733,12 @@ global_env.set('-', new LogoFn(['x', 'y'], function (env) {
 
 global_env.set('*', new LogoFn(['x', 'y'], function (env) {
                                  return env.lookup('x') * env.lookup('y');
+                               }));
+
+global_env.set('/', new LogoFn(['x', 'y'], function (env) {
+                                 return env.lookup('x') / env.lookup('y');
+                               }));
+
+global_env.set('%', new LogoFn(['x', 'y'], function (env) {
+                                 return env.lookup('x') % env.lookup('y');
                                }));
