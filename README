@@ -1,0 +1,9 @@
+LogoWeb is a turtle graphics program written in JavaScript. It is runnable with
+any browser supporting the <canvas> tag.
+
+LogoWeb is released under the GPL license.
+
+This project has the following goals:
+
+1) Let me learn JavaScript
+2) Let me learn how to use the <canvas> tag
