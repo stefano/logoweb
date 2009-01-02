@@ -105,26 +105,29 @@ function test_logo_gram() {
                    return logo_grammar.do_parse(lex_input(x));
                  },
                  [
-                   ['0 ', 'expr(num(0 : 1) : 1)'],
-                   ['10', 'expr(num(10 : 1) : 1)'],
-                   ['for a to 10 do a ( 10 ) end', 
-                    ['expr(times-loop(k-for(for : 1) var-name(a : 2) '
-                     + 'k-to(to : 3) expr(num(10 : 4) : 4) k-do(do : 5) '
-                     + 'expr+(expr(action-call(expr(var-name(a : 6) : 6) k-((( : 7) '
-                     + 'args-list(expr(num(10 : 8) : 8) : 8) k-)() : 9) '
-                     + ': 9) : 9) : 9) k-end(end : 10) : 10) : 10)']]
+//                   ['0 ;', 'expr+(expr(fac(num(0 : 1) : 1) : 1) : 1)'],
+  //                 ['10 ;', 'expr(num(10 : 1) : 1)'],
+    //               ['for a to 10 do a ( 10 ) end', 
+      //              ['expr(times-loop(k-for(for : 1) var-name(a : 2) '
+        //             + 'k-to(to : 3) expr(num(10 : 4) : 4) k-do(do : 5) '
+          //           + 'expr+(expr(action-call(expr(var-name(a : 6) : 6) k-((( : 7) '
+            //         + 'args-list(expr(num(10 : 8) : 8) : 8) k-)() : 9) '
+              //       + ': 9) : 9) : 9) k-end(end : 10) : 10) : 10)']]
                  ]);
 
   test_with_data(function (x) {
                    return toAST(logo_grammar.do_parse(lex_input(x))[0]);
                  },
                  [
-                   ['10', 'expr(num(10))'],
-                   ['a ( )', 
-                    'expr(action-call(expr(var-name(a))))'],
-                   ['a ( 10 11 )', 'expr(action-call(expr(var-name(a)),'
-                     + 'args-list(expr(num(10)),expr(num(11)))))'],
-                   ['for i to 10 do 1 a ( 10 ) 2 end', 'expr(times-loop(var-name(i),expr(num(10)),expr+(expr(num(1)),expr(action-call(expr(var-name(a)),args-list(expr(num(10))))),expr(num(2)))))']
+                   ['10 ;', 'expr+(expr(num(10)))'],
+                   ['a ( ) ;', 
+                    'expr+(expr(action-call(expr(var-name(a)))))'],
+                   ['a ( 10 11 ) ;', 'expr+(expr(action-call(expr(var-name(a)),args-list(expr(num(10)),expr(num(11))))))'],
+                   ['for i to 10 do 1 ; a ( 10 ) ; 2 ; end ;', 'expr+(expr(times-loop(var-name(i),expr(num(10)),expr+(expr(num(1)),expr(action-call(expr(var-name(a)),args-list(expr(num(10))))),expr(num(2))))))'],
+                   ['10 + 10 ;', 'expr+(expr(expr(num(10)),add-op(+),expr(num(10))))'],
+                   ['1 + 2 - 3 ;', 'expr+(expr(expr(expr(num(1)),add-op(+),expr(num(2))),add-op(-),expr(num(3))))'],
+                   ['1 + 2 * 3 ;', 'expr+(expr(expr(num(1)),add-op(+),expr(expr(num(2)),mul-op(*),expr(num(3)))))'],
+                   ['( 1 + 2 ) * 3 ;', 'expr+(expr(expr(expr(num(1)),add-op(+),expr(num(2))),mul-op(*),expr(num(3))))']
                  ]);
 }
 

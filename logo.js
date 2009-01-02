@@ -300,19 +300,18 @@ var logo_grammar = new Grammar();
 logo_grammar.init([
                     ['expr+', ['expr', 'k-;', 'expr+']],
                     ['expr+', ['expr', 'k-;']],
-                    ['expr', ['var-name']],
-                    ['expr', ['action-call']],
-                    ['expr', ['num']],
-                    ['expr', ['times-loop']],
-                    ['expr', ['local-var']],
-                    ['expr', ['action-definition']],
-                    ['expr', ['set-var']],
-                    ['expr', ['k-(', 'expr', 'k-)']],
-                    ['expr', ['math']],
-                    ['math', ['math1']],
-                    ['math', ['math1', 'math-op1', 'math1']],
-                    // math-op2 has higher precedence
-                    ['math1', ['math', 'math-op2', 'math']],
+                    ['fac', ['var-name']],
+                    ['fac', ['action-call']],
+                    ['fac', ['num']],
+                    ['fac', ['times-loop']],
+                    ['fac', ['local-var']],
+                    ['fac', ['action-definition']],
+                    ['fac', ['set-var']],
+                    ['fac', ['k-(', 'expr', 'k-)']],
+                    ['expr', ['term']],
+                    ['expr', ['expr', 'add-op', 'term']],
+                    ['term', ['fac']],
+                    ['term', ['term', 'mul-op', 'fac']],
                     ['times-loop', 
                      ['k-for', 'var-name', 'k-to', 
                       'expr', 'k-do', 'expr+', 'k-end']],
@@ -341,8 +340,8 @@ logo_grammar.init([
                     ['k-)', ['atom', ')']],
                     ['num', ['atom', match_num]],
                     ['var-name', ['atom', match_id]],
-                    ['math-op1', ['atom', match_op1]],
-                    ['math-op2', ['atom', match_op2]]
+                    ['add-op', ['atom', match_add]],
+                    ['mul-op', ['atom', match_mul]]
                   ]);
 
 function match_id(word) {
@@ -353,11 +352,11 @@ function match_num(word) {
   return typeof(word) == 'number';
 }
 
-function match_op1(word) {
+function match_add(word) {
   return ['+', '-'].indexOf(word)!=-1;
 }
 
-function match_op2(word) {
+function match_mul(word) {
   return ['*', '/'].indexOf(word)!=-1;
 }
 
@@ -401,12 +400,15 @@ function toAST(parse) {
                       }
                     }
                     
-                    if (parse.name == 'math1') {
-                      parse.name = 'math';
+                    // transform term and fac into expr nodes
+                    if (['term', 'fac'].indexOf(parse.name)!=-1) {
+                      parse.name = 'expr';
                     }
                     
-                    if (parse.name == 'math-op2') {
-                      parse.name = 'math-op1';
+                    // flatten expr within expr 
+                    if (parse.name == 'expr' && new_kids.length==1 &&
+                       new_kids[0].op == 'expr') {
+                      return new_kids[0];
                     }
                     
                     return new LogoAST(parse.name, new_kids);
@@ -521,7 +523,8 @@ function toEvaluator(ast) {
     },
     
     num: function (node, kids) {
-      return function (env) { return kids[0]; };
+      // use of eval to get a slight speed up
+      return eval('function (env) { return ' + kids[0] + '; }');
     },
     
     expr: function (node, kids) {
@@ -532,27 +535,22 @@ function toEvaluator(ast) {
           return env.lookup(name);
         };
       } else {
-        return kids[0];
+        if (kids.length == 3 && 
+            (kids[1].op == 'add-op' || kids[1].op == 'mul-op')) {
+          // math operation
+          var op = kids[1].args[0];
+          var x = kids[0];
+          var y = kids[2];
+          return function (env) {
+            return env.lookup(op).logocall(env, [x.call(this, env), 
+                                                 y.call(this, env)]);
+          };
+        } else {
+          return kids[0];
+        }
       }
     },
-    
-    'math-op1': function (node, kids) {
-      return kids[0];
-    },
-    
-    'math': function (node, kids) {
-      if (kids.length == 1) {
-        return kids[0];
-      }
-      
-      var op = kids[1];
-      var x = kids[0];
-      var y = kids[2];
-      return function (env) {
-        return env.lookup(op).logocall(x.call(this, env), y.call(this, env));
-      };
-    },
-    
+        
     'expr+': function (node, kids) {
       return function (env) {
         var res = null;
