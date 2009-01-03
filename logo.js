@@ -441,7 +441,8 @@ function LogoList(car, cdr) {
 
 LogoList.prototype = new LogoObject();
 
-function LogoFn(arglist, body) {
+function LogoFn(name, arglist, body) {
+  this.name = name; // debug name
   this.arglist = arglist; // an array of var names
   this.body = body; // body is a function that takes an Env
 }
@@ -453,7 +454,7 @@ LogoFn.prototype.logocall = function (env, args) {
     throw new LogoError('Wrong number of parameters to function: expected ' +
                         this.arglist.length + ' got ' + args.length);
   }
-  var e = new Env(env);
+  var e = new Env(this.name, env);
   for (var i = 0; i<args.length; ++i) {
     e.set_local(this.arglist[i], args[i]);
   }
@@ -468,12 +469,13 @@ LogoError.prototype.toString = function (x) {
   return this.msg;
 };
                     
-function Env(parent) {
+function Env(name, parent) {
   if (parent === undefined) {
     this.parent = null;
   } else {
     this.parent = parent;
   }
+  this.name = name;
   this.vars = {};
 }
 
@@ -516,6 +518,8 @@ Env.prototype = {
     return val;
   }
 };
+
+Env.accessors('name');
 
 function toEvaluator(ast) {
   
@@ -624,7 +628,7 @@ function toEvaluator(ast) {
         body = kids[2];
       }
       return function (env) {
-        env.set(name, new LogoFn(args, body));
+        env.set(name, new LogoFn(name, args, body));
       };
     },
     
@@ -635,7 +639,7 @@ function toEvaluator(ast) {
       var times = kids[1];
       var body = kids[2];      
       return function (env) {
-        var e = new Env(env);
+        var e = new Env('loop', env);
         var t = times.call(this, e);
         for (var i = 0; i<t; i++) {
           e.set_local(v, i);
@@ -667,12 +671,12 @@ function toEvaluator(ast) {
  * Bultins function and variables
  */
 
-var global_env = new Env();
+var global_env = new Env('global');
 
 global_env.set('line-type', 'straight');
 global_env.set('color', 'black');
 
-global_env.set('a', new LogoFn(['arg'], function (env) {
+global_env.set('a', new LogoFn('a', ['arg'], function (env) {
                                  var arg = env.lookup('arg');
                                  var line = env.lookup('line-type');
                                  var color = env.lookup('color');
@@ -684,7 +688,7 @@ global_env.set('a', new LogoFn(['arg'], function (env) {
                                  return arg;
                                }));
 
-global_env.set('b', new LogoFn(['arg'], function (env) {
+global_env.set('b', new LogoFn('b', ['arg'], function (env) {
                                  var arg = env.lookup('arg');
                                  var line = env.lookup('line-type');
                                  var color = env.lookup('color');
@@ -696,21 +700,21 @@ global_env.set('b', new LogoFn(['arg'], function (env) {
                                  return arg;
                                }));
 
-global_env.set('r', new LogoFn(['arg'], function (env) {
+global_env.set('r', new LogoFn('r', ['arg'], function (env) {
                                  var arg = env.lookup('arg');
                                  canvas.get_turtle().rot(arg);
                                  canvas.draw();
                                  return arg;
                                }));
 
-global_env.set('l', new LogoFn(['arg'], function (env) {
+global_env.set('l', new LogoFn('l', ['arg'], function (env) {
                                  var arg = env.lookup('arg');
                                  canvas.get_turtle().rot(-arg);
                                  canvas.draw();
                                  return arg;
                                }));
 
-global_env.set('centre', new LogoFn([], function (env) {
+global_env.set('centre', new LogoFn('centre', [], function (env) {
                                       canvas.get_turtle().reset_direction();
                                       canvas.get_moves().go(
                                         new Move(new Point(0, 0)));
@@ -718,48 +722,48 @@ global_env.set('centre', new LogoFn([], function (env) {
                                       return logoNil;
                                     }));
 
-global_env.set('hide', new LogoFn([], function (env) {
+global_env.set('hide', new LogoFn('hide', [], function (env) {
                                   canvas.get_turtle().set_visible(false);
                                   canvas.draw();
                                   return logoNil;
                                 }));
 
-global_env.set('show', new LogoFn([], function (env) {
+global_env.set('show', new LogoFn('show', [], function (env) {
                                     canvas.get_turtle().set_visible(true);
                                     canvas.draw();
                                     return logoNil;
                                   }));
 
-global_env.set('up', new LogoFn([], function (env) {
+global_env.set('up', new LogoFn('up', [], function (env) {
                                   env.set('line-type', 'none');
                                   return logoNil;
                                 }));
 
-global_env.set('down', new LogoFn([], function (env) {
+global_env.set('down', new LogoFn('down', [], function (env) {
                                     env.set('line-type', 'straight');
                                     return logoNil;
                                   }));
 
-global_env.set('+', new LogoFn(['x', 'y'], function (env) {
+global_env.set('+', new LogoFn('+', ['x', 'y'], function (env) {
                                  return env.lookup('x') + env.lookup('y');
                                }));
 
-global_env.set('-', new LogoFn(['x', 'y'], function (env) {
+global_env.set('-', new LogoFn('-', ['x', 'y'], function (env) {
                                  return env.lookup('x') - env.lookup('y');
                                }));
 
-global_env.set('inv', new LogoFn(['x'], function (env) {
+global_env.set('inv', new LogoFn('-', ['x'], function (env) {
                                    return -env.lookup('x');
                                  }));
 
-global_env.set('*', new LogoFn(['x', 'y'], function (env) {
+global_env.set('*', new LogoFn('*', ['x', 'y'], function (env) {
                                  return env.lookup('x') * env.lookup('y');
                                }));
 
-global_env.set('/', new LogoFn(['x', 'y'], function (env) {
+global_env.set('/', new LogoFn('/', ['x', 'y'], function (env) {
                                  return env.lookup('x') / env.lookup('y');
                                }));
 
-global_env.set('%', new LogoFn(['x', 'y'], function (env) {
+global_env.set('%', new LogoFn('%', ['x', 'y'], function (env) {
                                  return env.lookup('x') % env.lookup('y');
                                }));
