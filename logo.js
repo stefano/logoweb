@@ -533,8 +533,8 @@ function toEvaluator(ast) {
     },
     
     num: function (node, kids) {
-      // use of eval to get a slight speed up
-      return eval('function (env) { return ' + kids[0] + '; }');
+      var val = kids[0];
+      return function (env) { return val; };
     },
     
     expr: function (node, kids) {
